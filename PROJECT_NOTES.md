@@ -57,6 +57,81 @@ Environment needed:
 
 Note: `chatbot_gemini` currently also uses `openai/gpt-4.1-mini`. The name says Gemini, but the model is OpenAI through OpenRouter. Rename the function or change the model later if you want a real Gemini fallback.
 
+### `chat_checkpointing.py`
+
+This file shows LangGraph checkpointing with MongoDB.
+
+Flow:
+
+```text
+START -> Chatbot -> END
+```
+
+Important parts:
+
+- `State` stores the message list.
+- `chatbot()` sends the current messages to Groq.
+- `MongoDBSaver` stores graph checkpoints in MongoDB.
+- `graph_builder.compile(checkpointer=checkpointer)` enables checkpointing.
+- `thread_id` identifies one saved conversation or graph run.
+- `stream(..., stream_mode="values")` streams state updates while the graph runs.
+
+Main idea:
+
+```text
+Checkpointing saves graph state outside Python.
+```
+
+Why it matters:
+
+- You can continue a conversation later.
+- You can inspect old state.
+- You can resume long workflows.
+- You can keep separate conversations using different `thread_id` values.
+
+Example:
+
+```python
+config = {
+    "configurable": {
+        "thread_id": "Amol"
+    }
+}
+```
+
+The `thread_id` is like a save-file name.
+
+Same `thread_id`:
+
+```text
+Use the same saved state.
+```
+
+Different `thread_id`:
+
+```text
+Create or use a different saved state.
+```
+
+Environment needed:
+
+- `.env` must contain `GROQ_API_KEY`.
+- Docker MongoDB must be running.
+
+Run commands:
+
+```powershell
+docker compose up -d
+python .\chat_checkpointing.py
+```
+
+Reset MongoDB checkpoints:
+
+```powershell
+docker compose down -v
+docker compose up -d
+```
+
 ### `requirements.txt`
 
 This file lists Python packages needed by the project.
@@ -104,6 +179,13 @@ Run the conditional OpenRouter graph:
 python .\chat2.py
 ```
 
+Run the checkpointing graph:
+
+```powershell
+docker compose up -d
+python .\chat_checkpointing.py
+```
+
 ## Mental Model
 
 LangGraph works like this:
@@ -115,3 +197,10 @@ LangGraph works like this:
 5. Compile the graph.
 6. Invoke the graph with starting input.
 
+With checkpointing:
+
+1. Create a checkpointer.
+2. Compile the graph with the checkpointer.
+3. Run the graph with a `thread_id`.
+4. LangGraph saves state in the database.
+5. Use the same `thread_id` to continue that saved state later.

@@ -117,6 +117,129 @@ What it does:
 - checks if the answer is non-empty
 - decides the next graph node based on that check
 
+### `chat_checkpointing.py`
+
+LangGraph checkpointing example.
+
+Flow:
+
+```text
+START -> Chatbot -> END
+```
+
+What it does:
+
+- loads `GROQ_API_KEY` from `.env`
+- creates a Groq chat model
+- creates a MongoDB checkpointer
+- compiles the graph with that checkpointer
+- runs the graph using a `thread_id`
+- saves the conversation state in MongoDB
+
+The important new topic here is **checkpointing**.
+
+## Checkpointing
+
+Checkpointing means saving the graph state while the graph runs.
+
+Without checkpointing:
+
+```text
+Run graph -> get final answer -> state disappears after program ends
+```
+
+With checkpointing:
+
+```text
+Run graph -> save state -> continue later using same thread_id
+```
+
+In simple words:
+
+```text
+Checkpointing = memory saved outside Python
+```
+
+In this project, MongoDB stores the checkpoints.
+
+### Why Checkpointing Is Useful
+
+Checkpointing is useful when you want:
+
+- chat history to continue later
+- long-running workflows
+- pause and resume
+- debugging old graph runs
+- human approval steps
+- agents that remember previous state
+
+### Important Code
+
+The checkpointer is created here:
+
+```python
+MONGODB_URI = "mongodb://localhost:27017"
+
+with MongoDBSaver.from_conn_string(MONGODB_URI) as checkpointer:
+    graph_with_checkpointer = compile_graph_with_checkpointer(checkpointer)
+```
+
+The graph is compiled with checkpointing here:
+
+```python
+def compile_graph_with_checkpointer(checkpointer):
+    return graph_builder.compile(checkpointer=checkpointer)
+```
+
+The `thread_id` is very important:
+
+```python
+config = {
+    "configurable": {
+        "thread_id": "Amol"
+    }
+}
+```
+
+Think of `thread_id` as the conversation ID.
+
+Same `thread_id` means:
+
+```text
+Continue the same saved conversation
+```
+
+Different `thread_id` means:
+
+```text
+Start a different saved conversation
+```
+
+### MongoDB For Checkpoints
+
+This project uses Docker MongoDB.
+
+Start MongoDB:
+
+```powershell
+docker compose up -d
+```
+
+Stop MongoDB:
+
+```powershell
+docker compose down
+```
+
+Reset MongoDB data:
+
+```powershell
+docker compose down -v
+docker compose up -d
+```
+
+Use reset only when you want to delete old saved checkpoints.
+
 ### `PROJECT_NOTES.md`
 
 Extra notes explaining the files and the mental model of the project.
@@ -161,6 +284,13 @@ Run the conditional OpenRouter example:
 
 ```powershell
 python .\chat2.py
+```
+
+Run the MongoDB checkpointing example:
+
+```powershell
+docker compose up -d
+python .\chat_checkpointing.py
 ```
 
 ## Important LangGraph Words
@@ -232,4 +362,13 @@ Add nodes
 Add edges
 Compile graph
 Invoke graph
+```
+
+With checkpointing, add one more idea:
+
+```text
+Compile graph with checkpointer
+Run graph with thread_id
+State gets saved in database
+Later use same thread_id to continue
 ```

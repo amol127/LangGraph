@@ -3,3 +3,6 @@ langchain
 langchain-community
 python-dotenv
 langchain-openai
+pymongo 
+langgraph 
+langgraph-checkpoint-mongodb

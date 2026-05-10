@@ -217,3 +217,117 @@ Every LangGraph app follows this pattern:
     +--------------+
     | Invoke Graph |
     +--------------+
+
+
+7. Checkpointing Flow
+---------------------
+
+Checkpointing means saving graph state while the graph runs.
+
+Without checkpointing:
+
+    +-------+       +---------+       +-----+
+    | START | ----> |  Node   | ----> | END |
+    +-------+       +---------+       +-----+
+                          |
+                          v
+                 State exists only now
+
+
+With checkpointing:
+
+    +-------+       +---------+       +-----+
+    | START | ----> |  Node   | ----> | END |
+    +-------+       +---------+       +-----+
+                          |
+                          v
+                 +----------------+
+                 | Save Checkpoint|
+                 |   in MongoDB   |
+                 +----------------+
+
+
+In simple words:
+
+    Checkpointing = save graph memory in database
+
+
+8. Your chat_checkpointing.py Flow
+----------------------------------
+
+    +-------+       +----------+       +-----+
+    | START | ----> | Chatbot  | ----> | END |
+    +-------+       +----------+       +-----+
+                         |
+                         v
+              +----------------------+
+              | MongoDB Checkpointer |
+              +----------------------+
+                         |
+                         v
+              Saves state by thread_id
+
+
+State and thread_id:
+
+    thread_id = "Amol"
+
+    Initial State:
+    {
+        message: ["what am i learning"]
+    }
+
+           |
+           v
+
+    After Chatbot:
+    {
+        message: [
+            "what am i learning",
+            AI response
+        ]
+    }
+
+           |
+           v
+
+    MongoDB saves this state under thread_id "Amol"
+
+
+Why thread_id matters:
+
+    Same thread_id      -> continue same saved conversation
+    Different thread_id -> start/use another saved conversation
+
+
+9. Checkpointing Mental Model
+-----------------------------
+
+    +----------------+
+    | Create MongoDB |
+    | Checkpointer   |
+    +----------------+
+           |
+           v
+    +----------------------+
+    | Compile Graph With   |
+    | Checkpointer         |
+    +----------------------+
+           |
+           v
+    +----------------------+
+    | Run Graph With       |
+    | thread_id            |
+    +----------------------+
+           |
+           v
+    +----------------------+
+    | LangGraph Saves      |
+    | State In MongoDB     |
+    +----------------------+
+           |
+           v
+    +----------------------+
+    | Reuse Same thread_id |
+    | To Continue Later    |
+    +----------------------+
