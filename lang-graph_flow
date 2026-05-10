@@ -1,0 +1,219 @@
+LANGCHAIN AND LANGGRAPH FLOW DIAGRAMS
+====================================
+
+
+1. LangChain Basic Flow
+-----------------------
+
+LangChain is mainly used to call and work with LLMs.
+
+Flow:
+
+    +-------------+
+    | User Input  |
+    +-------------+
+           |
+           v
+    +-------------+
+    |   Prompt    |
+    +-------------+
+           |
+           v
+    +-------------+
+    |     LLM     |
+    +-------------+
+           |
+           v
+    +-------------+
+    |  Response   |
+    +-------------+
+
+
+In simple words:
+
+    User asks question -> LangChain sends it to model -> Model gives answer
+
+
+2. LangGraph Basic Flow
+-----------------------
+
+LangGraph is used to control a workflow using nodes and edges.
+
+Flow:
+
+    +-------+       +---------+       +---------+       +-----+
+    | START | ----> | Node 1  | ----> | Node 2  | ----> | END |
+    +-------+       +---------+       +---------+       +-----+
+
+
+In simple words:
+
+    START -> run one function -> run next function -> END
+
+
+3. Difference Between LangChain and LangGraph
+---------------------------------------------
+
+    +------------------+      +--------------------------+
+    |    LangChain     |      |        LangGraph         |
+    +------------------+      +--------------------------+
+    | Calls LLMs       |      | Controls workflow        |
+    | Handles prompts  |      | Uses nodes and edges     |
+    | Uses tools       |      | Supports branching       |
+    | Gets responses   |      | Maintains graph state    |
+    +------------------+      +--------------------------+
+
+
+Easy memory:
+
+    LangChain = AI model call
+    LangGraph = AI workflow control
+
+
+4. Your chat.py Flow
+--------------------
+
+This file has a simple straight-line graph.
+
+    +-------+       +----------+       +------------+       +-----+
+    | START | ----> | Chatbot  | ----> | samplenode | ----> | END |
+    +-------+       +----------+       +------------+       +-----+
+
+
+What happens:
+
+    1. START
+    2. Chatbot node calls Groq LLM
+    3. samplenode adds "Sample Message Appended"
+    4. END
+
+
+State flow:
+
+    Initial State:
+    {
+        message: ["Hi, My name is Amol Sawant"]
+    }
+
+           |
+           v
+
+    After Chatbot:
+    {
+        message: [
+            "Hi, My name is Amol Sawant",
+            AI response
+        ]
+    }
+
+           |
+           v
+
+    After samplenode:
+    {
+        message: [
+            "Hi, My name is Amol Sawant",
+            AI response,
+            "Sample Message Appended"
+        ]
+    }
+
+
+5. Your chat2.py Conditional Flow
+---------------------------------
+
+This file has a conditional graph.
+
+                       answer is good
+                     +----------------+
+                     |                |
+                     v                |
+    +-------+    +---------+    +----------+    +-----+
+    | START | -> | chatbot | -> | endnode  | -> | END |
+    +-------+    +---------+    +----------+    +-----+
+                     |
+                     |
+                     | answer is not good
+                     v
+              +----------------+
+              | chatbot_gemini |
+              +----------------+
+                     |
+                     v
+              +----------+    +-----+
+              | endnode  | -> | END |
+              +----------+    +-----+
+
+
+What happens:
+
+    1. START
+    2. chatbot node calls OpenRouter model
+    3. evaluate_response checks state["is_good"]
+    4. If is_good is True, go to endnode
+    5. If is_good is False, go to chatbot_gemini fallback
+    6. END
+
+
+State flow:
+
+    Initial State:
+    {
+        user_query: "Hey, What is 2+2 ?"
+    }
+
+           |
+           v
+
+    After chatbot:
+    {
+        user_query: "Hey, What is 2+2 ?",
+        llm_output: "2 + 2 equals 4.",
+        is_good: True
+    }
+
+           |
+           v
+
+    evaluate_response decides:
+
+        if is_good == True:
+            go to endnode
+
+        else:
+            go to chatbot_gemini
+
+
+6. Full Mental Model
+--------------------
+
+Every LangGraph app follows this pattern:
+
+    +--------------+
+    | Define State |
+    +--------------+
+           |
+           v
+    +----------------------+
+    | Write Node Functions |
+    +----------------------+
+           |
+           v
+    +-----------+
+    | Add Nodes |
+    +-----------+
+           |
+           v
+    +-----------+
+    | Add Edges |
+    +-----------+
+           |
+           v
+    +---------------+
+    | Compile Graph |
+    +---------------+
+           |
+           v
+    +--------------+
+    | Invoke Graph |
+    +--------------+
